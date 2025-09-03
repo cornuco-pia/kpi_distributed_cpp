@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Civic_machine_assimilator.png</file>
+    </qresource>
+</RCC>
