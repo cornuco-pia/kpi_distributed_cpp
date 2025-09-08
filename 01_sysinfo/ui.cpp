@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QPalette>
 #include <QCursor>
+#include <QFontMetricsF>
 
 // qt widgets
 #include <QMainWindow>
@@ -15,16 +16,15 @@
 class MainWindow : public QMainWindow {
 public:
     MainWindow() {
-        setWindowTitle("name123");    // req
+        setWindowTitle("trofymenko");    // req
         setGeometry(50, 90, 400, 500);   // int x,int y,int w,int h     // req 
-        //setWindowFlag(Qt::WindowCloseButtonHint, false); // req
 
         QPalette pal = palette();
-        pal.setColor(QPalette::Window, QColor(64, 64, 64)); //req
+        pal.setColor(QPalette::Window, Qt::lightGray); //req
         setAutoFillBackground(true);
         setPalette(pal);
 
-        setCursor(Qt::SizeAllCursor); //req
+        setCursor(Qt::WhatsThisCursor); //req
 
         // horizontal scroll only
         QScrollArea *scrollArea = new QScrollArea(this);
@@ -37,13 +37,12 @@ public:
         label->setStyleSheet("color: white;");
         scrollArea->setWidget(label);
 
-        // timer connect TODO: check why this is passed separately
         QTimer *update_timer = new QTimer (this);
         connect(update_timer, &QTimer::timeout, this, &MainWindow::UpdateMetrics);
         update_timer->start(100);
 
         setWindowIcon(QIcon(":/Civic_machine_assimilator.png"));
-        //setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinimizeButtonHint); //https://doc.qt.io/qt-6/qt.html#WindowType-enum
+        setWindowFlags(Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint | Qt::WindowSystemMenuHint);
     }
 
 private:
@@ -54,6 +53,8 @@ private:
     }
 
     QString getMetricsText() {
+        QFontMetricsF fm(this->font()); 
+
         int cursorW = QCursor().pos().x();
         int cursorH = QCursor().pos().y();
 
@@ -65,6 +66,8 @@ private:
         text += "Cursor height: " + QString::number(cursorH) + "\n";
         text += "Client area width: " + QString::number(client.width()) + "\n";
         text += "Client area height: " + QString::number(client.height()) + "\n";
+        text += "Font height: " + QString::number(fm.height()) + "\n";
+        text += "Font linespacing: " + QString::number(fm.lineSpacing()) + "\n";
 
         return text;
     }
