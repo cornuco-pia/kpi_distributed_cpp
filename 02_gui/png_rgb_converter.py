@@ -1,7 +1,6 @@
 from PIL import Image
 
-# Open the PNG and convert to RGB (ignore alpha channel)
-img = Image.open("01_sysinfo/Civic_machine_assimilator.png").convert("RGB")
+img = Image.open("../01_sysinfo/Civic_machine_assimilator.png").convert("RGB")
 width, height = img.size
 print("width, height:", width, height)
 pixels = list(img.getdata())

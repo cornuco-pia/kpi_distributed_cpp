@@ -45,11 +45,6 @@ protected:
         painter.drawImage(targetRect, image);
     }
 
-    void resizeEvent(QResizeEvent *event) override {
-        QWidget::resizeEvent(event);
-        // QPainter handles scaling when drawing
-    }
-
 private:
     QImage image;
 };
