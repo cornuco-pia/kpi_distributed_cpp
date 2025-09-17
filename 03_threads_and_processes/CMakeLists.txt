@@ -1,6 +1,7 @@
 set(CMAKE_PREFIX_PATH "/home/admin/Documents/code/distributed_cpp/Qt/6.9.2/gcc_64")
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_BUILD_TYPE Debug)
 
 cmake_minimum_required(VERSION 3.16)
 
