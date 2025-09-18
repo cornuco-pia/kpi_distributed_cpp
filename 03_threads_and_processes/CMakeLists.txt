@@ -3,6 +3,19 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_BUILD_TYPE Debug)
 
+# add_compile_options(
+#     -Wall 
+#     -Wextra 
+#     -Wpedantic
+#     -Weverything
+
+#     -Wno-c++98-compat
+#     -Wno-c++98-compat-pedantic
+#     -Wno-padded
+#     -Wno-documentation
+#     -Wno-documentation-unknown-command
+# )
+
 cmake_minimum_required(VERSION 3.16)
 
 project(ui LANGUAGES CXX)

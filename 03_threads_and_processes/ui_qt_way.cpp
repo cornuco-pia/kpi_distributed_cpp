@@ -7,6 +7,19 @@
 #include <QVBoxLayout>
 #include <QCursor>
 #include <QTimer>
+#include <QMenu>
+#include <QMutex>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+
+int unused_variable = 42;
+
+QLabel *mutexCounterLabel = nullptr;
+QLabel *atomCounterLabel = nullptr;
+int mutexSharedCounter = 0;
+std::atomic<int> atomSharedCounter{0};
+QMutex gCounterMutex;
 
 class ClickableLabel : public QLabel { 
     Q_OBJECT
@@ -48,6 +61,7 @@ public:
     }
 public slots:
     void doWork() {
+        qDebug() << "a thread has been started with pid:" << syscall(SYS_gettid);
         processNext();
     }
     void processNext() {
@@ -83,8 +97,9 @@ class WorkerController : public QObject {
     Worker * myWorker;
     ClickableLabel *myLabel;
     QThread *myThread;
+    
 public:
-    WorkerController(QWidget * parent, int id, bool ascending, QPoint pos){
+    WorkerController(QWidget * parent, int id, bool ascending, QPoint pos) : QObject(parent){
         myId = id;
         myWorker = new Worker(ascending);
         myThread = new QThread(); //CRUCIAL to keep track of the threads
@@ -104,6 +119,7 @@ public:
 
         connect(myThread, &QThread::started, myWorker, &Worker::doWork);
         myThread->start();
+
     }
 
 protected:
@@ -122,17 +138,24 @@ signals:
 
 public slots:
     void workerFinished(){
+        myLabel->deleteLater();
+        myWorker->deleteLater();
         myThread->quit();
         myThread->wait();
         myThread->deleteLater();
-        myLabel->deleteLater();
-        myWorker->deleteLater();
-        qDebug() << "worker finished";
+        
         emit controllerFinished(myId);
     }
     void handleWorkerUpdate(int number, bool ascending){
-        printMessage(number, ascending);
+        //printMessage(number, ascending);
         updateLabel(number, ascending);
+        //upd global counter of ticks
+        QMutexLocker locker(&gCounterMutex);
+        mutexSharedCounter++;
+        mutexCounterLabel->setText(QString("Mutex counter: %1").arg(mutexSharedCounter));
+
+        atomSharedCounter++;
+        atomCounterLabel->setText(QString("Atomic counter: %1").arg(atomSharedCounter.load()));
     }
     void finishWorker(){
         myWorker->stopRunning();
@@ -144,6 +167,9 @@ class MyWindow : public QMainWindow{
     int nextId = 1;
     QLabel *mainLabel;
     QHash<int, WorkerController*> workerControllers;
+    int maxThreads = 5;
+    QMenu *contextMenu;
+    
 public:
     MyWindow() {
         auto *central = new QWidget;
@@ -153,6 +179,29 @@ public:
         central->setLayout(layout);
         setCentralWidget(central);
         setGeometry(200, 200, 800, 500); 
+
+        contextMenu = new QMenu(this);
+        for (int i = 1; i <= 10; i++) {
+            QAction *action = contextMenu->addAction(QString::number(i));
+            connect(action, &QAction::triggered, this, [this, i]() { 
+                maxThreads = i; 
+                qDebug() << "max threads set to" << maxThreads;
+            });
+        }
+        setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(this, &MyWindow::customContextMenuRequested, this, [this](const QPoint &pos){
+            contextMenu->exec(mapToGlobal(pos));
+        });
+
+        mutexCounterLabel = new QLabel("Mutex counter: 0", this);
+        mutexCounterLabel->move(10, 10);
+        mutexCounterLabel->setFixedSize(150, 10);
+        mutexCounterLabel->show();
+
+        atomCounterLabel = new QLabel("Atomic counter: 0", this);
+        atomCounterLabel->move(10, 30);
+        atomCounterLabel->setFixedSize(150, 10);
+        atomCounterLabel->show();
     }
     ~MyWindow() {
     for (WorkerController *c : workerControllers) {
@@ -162,6 +211,7 @@ public:
     }
 protected:
     void mousePressEvent(QMouseEvent *event) override {
+        if (workerControllers.size() >= maxThreads) return;
         bool asc = event->button() == Qt::RightButton;
         auto cursor_pos = QCursor().pos();
 
@@ -185,8 +235,6 @@ protected:
 public slots:
     void handleFinishedController(int controllerId) {
         delete workerControllers[controllerId]; //because deleteLater DOESN'T WORK correctly here
-        // bc controllers don't have a parent
-        //workerControllers[controllerId]->deleteLater(); 
         workerControllers.remove(controllerId);
     }
 };
