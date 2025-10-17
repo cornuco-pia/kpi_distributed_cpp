@@ -6,9 +6,9 @@
 !*/
 # ^ found this on stack overflow and have never been happier
 
-Qt/
 **/build
 **.zip
 .vscode/
+external/
 
 

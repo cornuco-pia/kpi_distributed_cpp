@@ -1,4 +1,4 @@
-set(CMAKE_PREFIX_PATH "/home/admin/Documents/code/distributed_cpp/Qt/6.9.2/gcc_64")
+set(CMAKE_PREFIX_PATH "/home/admin/Documents/code/distributed_cpp/external/Qt/6.9.2/gcc_64")
 set(CMAKE_AUTORCC ON)
 
 cmake_minimum_required(VERSION 3.16)
