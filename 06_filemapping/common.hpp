@@ -2,6 +2,7 @@
 #define COMMON_HPP
 
 #include <cstddef>
+#include <boost/interprocess/sync/interprocess_condition.hpp>
 
 namespace ipc_constants {
     const char* const SHARED_MEM_NAME = "my_system_info_shm";
@@ -27,6 +28,10 @@ struct SharedData {
     
     Client1Payload client1_payload;
     Client2Payload client2_payload;
+
+    boost::interprocess::interprocess_condition data_cond;
+
+    boost::interprocess::interprocess_mutex mutex;
 };
 
 #endif

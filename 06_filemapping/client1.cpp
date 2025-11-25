@@ -59,6 +59,8 @@ public slots:
 
                 shm->client1_payload = p;
                 shm->new_data_flag = 1;
+
+                shm->data_cond.notify_all();
             }
 
             QMessageBox::information(this, "Success", "Data sent to shared memory!");

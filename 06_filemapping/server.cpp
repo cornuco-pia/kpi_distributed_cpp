@@ -38,14 +38,14 @@ public:
             // remove old resources
             std::cout << "REMOVING PREVIOUS OBJECTS" << std::flush;
             bip::shared_memory_object::remove(ipc_constants::SHARED_MEM_NAME);
-            bip::named_mutex::remove(ipc_constants::MUTEX_NAME);
+            //bip::named_mutex::remove(ipc_constants::MUTEX_NAME);
 
             // create new
-            std::cout << "CREATING SHM" << std::flush;
+            //std::cout << "CREATING SHM" << std::flush;
             segment = bip::managed_shared_memory(bip::create_only, ipc_constants::SHARED_MEM_NAME, ipc_constants::SHARED_MEM_SIZE);
-            std::cout << "CREATING MUTEX" << std::flush;
-            mutex = std::make_unique<bip::named_mutex>(bip::create_only, ipc_constants::MUTEX_NAME);
-            std::cout << "DONE" << std::flush;
+            //std::cout << "CREATING MUTEX" << std::flush;
+            //mutex = std::make_unique<bip::named_mutex>(bip::create_only, ipc_constants::MUTEX_NAME);
+            //std::cout << "DONE" << std::flush;
             //mutex = bip::named_mutex(bip::create_only, ipc_constants::MUTEX_NAME);
             
             shared_data = segment.construct<SharedData>("SharedData")();
@@ -60,38 +60,33 @@ public:
 
         while (keep_running) {
             try {
-                bip::scoped_lock<bip::named_mutex> lock(*mutex, bip::try_to_lock);
+                bip::scoped_lock<bip::interprocess_mutex> lock(shared_data->mutex);
 
-                if (lock) {
-                    if (shared_data->new_data_flag == 1) {
-                        QString msg = QString("<b>[Client 1 Data Received]</b><br>"
-                                              "RAM: %1 KB<br>"
-                                              "Ext Disk: %2<br>"
-                                              "Screen Width: %3 px")
-                                      .arg(shared_data->client1_payload.total_ram_kb)
-                                      .arg(shared_data->client1_payload.has_external_disk ? "Yes" : "No")
-                                      .arg(shared_data->client1_payload.screen_width_px);
-                        emit logMessage(msg);
-                        shared_data->new_data_flag = 0;
-                    } 
-                    else if (shared_data->new_data_flag == 2) {
-                        QString msg = QString("<b>[Client 2 Data Received]</b><br>"
-                                              "Status Bar: %1 px<br>"
-                                              "Notif Panel: %2 px<br>"
-                                              "DPI: %3")
-                                      .arg(shared_data->client2_payload.status_bar_height_px)
-                                      .arg(shared_data->client2_payload.notification_panel_width_px)
-                                      .arg(shared_data->client2_payload.horizontal_dpi);
-                        emit logMessage(msg);
-                        shared_data->new_data_flag = 0;
-                    }
+                while (shared_data->new_data_flag == 0 && keep_running) {
+                    shared_data->data_cond.wait(lock);
                 }
-            } catch (const std::exception& e) {
-                emit logMessage(QString("Monitor Error: %1").arg(e.what()));
-            }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        }
+                if (!keep_running) break;
+
+                if (shared_data->new_data_flag == 1) {
+                QString msg = QString("<b>[Client 1 Event]</b><br>RAM: %1<br>Width: %2")
+                                .arg(shared_data->client1_payload.total_ram_kb)
+                                .arg(shared_data->client1_payload.screen_width_px);
+                emit logMessage(msg);
+                shared_data->new_data_flag = 0;
+                } 
+                else if (shared_data->new_data_flag == 2) {
+                    QString msg = QString("<b>[Client 2 Event]</b><br>Bar: %1<br>DPI: %2")
+                                    .arg(shared_data->client2_payload.status_bar_height_px)
+                                    .arg(shared_data->client2_payload.horizontal_dpi);
+                    emit logMessage(msg);
+                    shared_data->new_data_flag = 0;
+                }
+                } catch (const std::exception& e) {
+                    emit logMessage(QString("Monitor Error: %1").arg(e.what()));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                }
+            }
         
         bip::shared_memory_object::remove(ipc_constants::SHARED_MEM_NAME);
         bip::named_mutex::remove(ipc_constants::MUTEX_NAME);
